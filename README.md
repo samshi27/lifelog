@@ -2,7 +2,7 @@
 
 > Commit your days. A git-inspired daily logger with a contribution grid.
 
-`lifelog` borrows git's vocabulary — `commit`, `push`, the contribution grid — and points it at your life instead of your code. You log what you _did_ (past tense; it's a done-tracker, not a to-do list), `push` to seal the day, and watch a grid fill in over the month. Terminal first, with a GUI and mobile app to follow. Built in Rust.
+`lifelog` borrows git's vocabulary - `commit`, `push`, the contribution grid - and points it at your life instead of your code. You log what you _did_ (past tense; it's a done-tracker, not a to-do list), `push` to seal the day, and watch a grid fill in over the month. Terminal first, with a GUI and mobile app to follow. Built in Rust.
 
 ## How it works
 
@@ -42,14 +42,14 @@ One tile per day. Emerald on black, brighter the busier the day.
 
 ## Tech
 
-- **Rust**, organized as a cargo workspace: `engine` (the shared core — grammar, types, storage) and `cli` (the first frontend).
+- **Rust**, organized as a cargo workspace: `engine` (the shared core - grammar, types, storage) and `cli` (the first frontend).
 - **SQLite** via `rusqlite` for storage. Commits, trailers, and a small `days` table for the sealed flag.
 - **Ratatui** for the terminal UI.
 - **Tauri** for the desktop GUI and mobile app, reusing the same `engine` core.
 
 ## Status
 
-Early days — the core is taking shape.
+Early days - the core is taking shape.
 
 - [x] Cargo workspace (`engine` + `cli`)
 - [x] Commit grammar parser
