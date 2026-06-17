@@ -18,13 +18,14 @@ A commit is `verb` + `subject`, with everything else optional:
 ```
 make shipped the dark mode toggle
 work:report finished the Q2 draft -t 120
-move ran 5k -t 32
-life groceries + pharmacy -s ₹1,450
+body ran 5k -t 32
+life groceries + pharmacy -s 1450
 ```
 
-- The **verb** is one of the four pillars (below). It's the command itself - no `-m`, no quotes.
+- The **verb** is one of the five pillars (below). It's the command itself - no `-m`, no quotes.
 - A **`:scope`** narrows the verb when you'll want to filter later (`work:report` vs `work:meeting`). Optional.
-- **Flags** become durable trailers: `-t` → `Mins`, `-s` → `Spent`. You type the flag; it's stored as structured data.
+- **Flags** become durable trailers, stored as structured data. The defaults:
+  `-t` Mins · `-s` Spent · `-d` Dist · `-l` Loc · `-c` Carbs · `-k` Kcal · `-p` Protein · `-w` With · `-r` Reps.
 - An **empty subject** (just the verb) opens an editor for a longer note.
 - A commit can be **starred** as the day's highlight.
 
@@ -32,9 +33,17 @@ Other commands: `log` (today's commits), `push` (seal the day), `undo` (drop the
 
 ## Pillars
 
-Four types: **make**, **work**, **move**, **life**.
+Five types: **body**, **work**, **make**, **mind**, **life**.
 
-Everything else either rides along as a trailer (money, minutes, macros) or falls into `life` (errands, reading, rest).
+- **body** - anything that feeds the physical self: workouts, walks, meals, rest, the morning matcha.
+- **work** - the job, the career, focused output.
+- **make** - things you create: code, craft, the bindery.
+- **mind** - reading, learning, contemplation, the quiet inner stuff.
+- **life** - everything else: errands, commute, calls, outings, admin.
+
+These are a guide, not a rulebook. Anything that doesn't obviously fit lands in
+**mind** or **life** - whichever feels right. The goal is to never get stuck
+deciding; when in doubt, `life` it.
 
 ## The contribution grid
 
@@ -54,8 +63,11 @@ Early days - the core is taking shape.
 - [x] Cargo workspace (`engine` + `cli`)
 - [x] Commit grammar parser
 - [x] Graceful error handling (`Result` + typed errors)
-- [ ] SQLite persistence
-- [ ] `log` / `push` / `undo` commands
+- [x] SQLite persistence
+- [x] `log` command (read today's commits back)
+- [ ] `push` / `undo` commands
+- [ ] Accept typed input (log a real commit)
+- [ ] Configurable flags (user-defined trailers)
 - [ ] Contribution grid
 - [ ] Terminal UI (Ratatui)
 - [ ] Desktop GUI + mobile (Tauri)
