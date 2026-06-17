@@ -1,5 +1,5 @@
 // add in date/time types (chrono) and UUID generation (uuid)
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use uuid::Uuid;
 
 // declare the `db` submodule - tells Rust that db.rs is part of this crate
@@ -162,8 +162,8 @@ impl fmt::Display for Pillar {
 // e.g. "10:13 work(report): finished the Q2 draft . Mins 120 . Spent 1450"
 impl fmt::Display for Commit {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // just the HH:MM part of the timestamp
-        let time = self.created_at.format("%H:%M");
+        // local time
+        let time = self.created_at.with_timezone(&Local).format("%H:%M");
 
         // "work(report)" if there's a scope; else just "work"
         let head = match &self.scope {
