@@ -25,11 +25,11 @@ life groceries + pharmacy -s 1450
 - The **verb** is one of the five pillars (below). It's the command itself - no `-m`, no quotes.
 - A **`:scope`** narrows the verb when you'll want to filter later (`work:report` vs `work:meeting`). Optional.
 - **Flags** become durable trailers, stored as structured data. The defaults:
-  `-t` Mins · `-s` Spent · `-d` Dist · `-l` Loc · `-c` Carbs · `-k` Kcal · `-p` Protein · `-w` With · `-r` Reps.
+  `-t` Mins • `-s` Spent • `-d` Dist • `-l` Loc • `-c` Carbs • `-k` Kcal • `-p` Protein • `-w` With • `-r` Reps.
 - An **empty subject** (just the verb) opens an editor for a longer note.
 - A commit can be **starred** as the day's highlight.
 
-Other commands: `log` (today's commits), `push` (seal the day), `undo` (drop the last commit).
+Other commands: `log` (today's commits), `status` (where the day stands), `push` (seal the day), `undo` (drop the last commit).
 
 ## Pillars
 
@@ -47,7 +47,8 @@ deciding; when in doubt, `life` it.
 
 ## The contribution grid
 
-One tile per day. Emerald on black, brighter the busier the day.
+One tile per day, laid out as a weekday-aligned calendar of the last 30 days.
+Emerald on black, brighter the busier the day. Run with `grid`.
 
 ## Tech
 
@@ -64,18 +65,31 @@ Early days - the core is taking shape.
 - [x] Commit grammar parser
 - [x] Graceful error handling (`Result` + typed errors)
 - [x] SQLite persistence
+- [x] Accept typed input (log a real commit)
 - [x] `log` command (read today's commits back)
-- [ ] `push` / `undo` commands
-- [ ] Accept typed input (log a real commit)
+- [x] `status` command (where the day stands)
+- [x] `push` command (seal / re-seal the day)
+- [x] Contribution grid (emerald, weekday-aligned, last 30 days)
+- [ ] `undo` command (drop the last commit)
 - [ ] Configurable flags (user-defined trailers)
-- [ ] Contribution grid
+- [ ] Today marker + weekday/month labels on the grid
 - [ ] Terminal UI (Ratatui)
 - [ ] Desktop GUI + mobile (Tauri)
 
 ## Build
 
 ```
-cargo run -p cli
+cargo run -p cli -- <command>
+```
+
+Examples:
+
+```
+cargo run -p cli -- body ran 5k -t 32      # log a commit
+cargo run -p cli -- log                    # show today
+cargo run -p cli -- status                 # sealed / draft / empty
+cargo run -p cli -- push                   # seal the day
+cargo run -p cli -- grid                   # the contribution grid
 ```
 
 ---
