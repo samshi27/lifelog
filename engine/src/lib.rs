@@ -172,14 +172,14 @@ impl fmt::Display for Commit {
         };
 
         // a star prefix only for highlighted commits
-        let star = if self.is_highlight { "* " } else { "" };
+        let star = if self.is_highlight { "✦ " } else { "" };
 
         // write the main line. The trailing `?` propagates up any write error
         write!(f, "{}  {}{}: {}", time, star, head, self.subject)?;
 
         // append each trailer, e.g. " . Mins 120"
         for t in &self.trailers {
-            write!(f, " · {} {}", t.key, t.value)?;
+            write!(f, " • {} {}", t.key, t.value)?;
         }
 
         Ok(())

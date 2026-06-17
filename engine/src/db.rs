@@ -1,11 +1,30 @@
+use std::collections::HashMap;
+
 use crate::{Commit, Pillar, Trailer};
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
+use rusqlite::OptionalExtension;
 use uuid::Uuid;
 
 // wraps the live sqlite connection; all database access goes through this
 pub struct Database {
     conn: Connection,
+}
+
+// the outcome of trying to push (seal) a day. Each variant is an EVENT
+// the cli can turn into the right message
+pub enum PushResult {
+    Sealed(u32),        // first seal; carries the commit count
+    Resealed(u32, u32), // (total commits, how many are new)
+    NothingNew(String), // already sealed; carries the pushed_at time
+    Empty,              // no commits to seal
+}
+
+// the current state of a day, for `status` to report
+pub enum DayStatus {
+    Sealed(u32), // sealed; carries commit count
+    Draft(u32),  // has commits but not sealed; carries count
+    Empty,       // nothing logged
 }
 
 impl Database {
@@ -147,6 +166,116 @@ impl Database {
         // nothing is truly written until this line commits the transaction.
         tx.commit()?;
         Ok(())
+    }
+
+    pub fn seal_day(&mut self, day: &str) -> rusqlite::Result<PushResult> {
+        // how many commits does this day have at all?
+        let total: u32 = self.conn.query_row(
+            "SELECT COUNT(*) FROM commits WHERE day = ?1",
+            [day],
+            |row| row.get(0),
+        )?;
+
+        // rule 1: never seal an empty day
+        if total == 0 {
+            return Ok(PushResult::Empty);
+        }
+
+        // is there already a seal? query_row errors if no row exists, so we
+        // use .optional() to turn "no row" into None instead of an error
+        let existing: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT pushed_at FROM days WHERE day = ?1 AND sealed = 1",
+                [day],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        match existing {
+            // already sealed - only re-seal if commits arrived after pushed_at.
+            Some(pushed_at) => {
+                let new_count: u32 = self.conn.query_row(
+                    "SELECT COUNT(*) FROM commits WHERE day = ?1 AND created_at > ?2",
+                    rusqlite::params![day, pushed_at],
+                    |row| row.get(0),
+                )?;
+
+                if new_count == 0 {
+                    Ok(PushResult::NothingNew(pushed_at))
+                } else {
+                    // re-seal: bump pushed_at to now
+                    self.conn.execute(
+                        "UPDATE days SET pushed_at = ?2 WHERE day = ?1",
+                        rusqlite::params![day, now],
+                    )?;
+                    Ok(PushResult::Resealed(total, new_count))
+                }
+            }
+            // never sealed - create the row, sealed and stamped
+            None => {
+                self.conn.execute(
+                    "INSERT OR REPLACE INTO days (day, sealed, pushed_at)
+                     VALUES (?1, 1, ?2)",
+                    rusqlite::params![day, now],
+                )?;
+                Ok(PushResult::Sealed(total))
+            }
+        }
+    }
+
+    pub fn day_status(&self, day: &str) -> rusqlite::Result<DayStatus> {
+        // count today's commits
+        let total: u32 = self.conn.query_row(
+            "SELECT COUNT(*) FROM commits WHERE day = ?1",
+            [day],
+            |row| row.get(0),
+        )?;
+
+        if total == 0 {
+            return Ok(DayStatus::Empty);
+        }
+
+        // is this day sealed? .optional() turns "no row" into None
+        let sealed: Option<bool> = self
+            .conn
+            .query_row("SELECT sealed FROM days WHERE day = ?1", [day], |row| {
+                row.get(0)
+            })
+            .optional()?;
+
+        // Some(true) = sealed; anything else (None, or a draft row) = draft
+        match sealed {
+            Some(true) => Ok(DayStatus::Sealed(total)),
+            _ => Ok(DayStatus::Draft(total)),
+        }
+    }
+
+    // for every day on/after `from` (a "YYYY-MM-DD" string), how many commits?
+    // returns a map: "2026-06-15" -> 3
+    // days with zero commits simply aren't in the map (we treat missing as 0 when drawing)
+    pub fn daily_counts(&self, from: &str) -> rusqlite::Result<HashMap<String, u32>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT day, COUNT(*) FROM commits
+             WHERE day >= ?1
+             GROUP BY day",
+        )?;
+
+        let rows = stmt.query_map([from], |row| {
+            let day: String = row.get(0)?;
+            let count: u32 = row.get(1)?;
+            Ok((day, count))
+        })?;
+
+        // collect the (day, count) pairs into a HashMap
+        let mut counts = HashMap::new();
+        for r in rows {
+            let (day, count) = r?;
+            counts.insert(day, count);
+        }
+        Ok(counts)
     }
 }
 
