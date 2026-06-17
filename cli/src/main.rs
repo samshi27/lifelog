@@ -8,18 +8,42 @@ fn main() -> rusqlite::Result<()> {
     // `mut` because save() needs a mutable borrow (it opens a transaction)
     let mut db = Database::open("lifelog.db")?;
 
-    // TEMPORARY: hardcoded line so there's something to save each run
-    // next step replaces this with real typed input
-    let line = "work:report finished the Q2 draft -t 120 -s 1450";
-    if let Ok(commit) = Commit::parse(line) {
-        db.save(&commit)?;
+    // collect what the user typed. The FIRST arg is always the program's own
+    // name, so we skip it with skip(1) and keep the rest
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    // Nothing typed? Show today and get out
+    if args.is_empty() {
+        show_today(&db)?;
+        return Ok(());
     }
 
-    // today's date as "YYYY-MM-DD" to match the `day` column
+    // the first real word decides the command
+    match args[0].as_str() {
+        "log" => {
+            show_today(&db)?;
+        }
+        // anything else is treated as a commit to log
+        _ => {
+            // re-join all the words back into one line for the parser
+            let line = args.join(" ");
+            match Commit::parse(&line) {
+                Ok(commit) => {
+                    db.save(&commit)?;
+                    println!("logged: {}", commit);
+                }
+                Err(e) => println!("couldn't parse that: {:?}", e),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn show_today(db: &Database) -> rusqlite::Result<()> {
     let today = Utc::now().format("%Y-%m-%d").to_string();
     let commits = db.commits_for_day(&today)?;
 
-    // print a header, then each commit via its Display impl ({} not {:?})
     println!("\n{}  ({} commits)\n", today, commits.len());
     for commit in &commits {
         println!("{}", commit);
