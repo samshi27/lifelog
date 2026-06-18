@@ -84,10 +84,15 @@ fn show_today(db: &Database) -> rusqlite::Result<()> {
     let today_formatted = Local::now().format("%-d %B %Y").to_string();
     let commits = db.commits_for_day(&today_key)?;
 
-    println!("\n{}  ({} commits)\n", today_formatted, commits.len());
+    let n: usize = commits.len();
+    let plural = if n == 1 { "commit" } else { "commits" };
+
+    println!("\n{}  ({} {})\n", today_formatted, n, plural);
+
     for commit in &commits {
         println!("{}", commit);
     }
+
     Ok(())
 }
 
