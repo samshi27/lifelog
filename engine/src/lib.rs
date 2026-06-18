@@ -117,6 +117,17 @@ impl Pillar {
             Pillar::Life => "life",
         }
     }
+
+    pub fn from_str(s: &str) -> Pillar {
+        match s {
+            "body" => Pillar::Body,
+            "work" => Pillar::Work,
+            "make" => Pillar::Make,
+            "mind" => Pillar::Mind,
+            "life" => Pillar::Life,
+            _ => Pillar::Life,
+        }
+    }
 }
 
 impl fmt::Display for Pillar {

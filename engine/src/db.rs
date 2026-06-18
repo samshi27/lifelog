@@ -253,15 +253,3 @@ impl Database {
         Ok(counts)
     }
 }
-
-impl Pillar {
-    pub fn from_str(s: &str) -> Pillar {
-        match s {
-            "body" => Pillar::Body,
-            "work" => Pillar::Work,
-            "make" => Pillar::Make,
-            "mind" => Pillar::Mind,
-            _ => Pillar::Life,
-        }
-    }
-}
