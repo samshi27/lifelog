@@ -1,28 +1,25 @@
 use chrono::{Datelike, Duration, Local};
 use engine::{Commit, db::Database};
 
-// main returns a Result so the `?` operator can propagate database errors out
-// rusqlite::Result<()> = "succeeds with nothing, or fails with a db error"
-fn main() -> rusqlite::Result<()> {
-    // open the database (creates the file + tables on first run)
-    // `mut` because save() needs a mutable borrow (it opens a transaction)
-    let mut db = Database::open_default()?;
+mod app;
+mod input;
+mod screens;
+mod tui;
 
-    // collect what the user typed. The FIRST arg is always the program's own
-    // name, so we skip it with skip(1) and keep the rest
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut db = Database::open_default()?;
     let args: Vec<String> = std::env::args().skip(1).collect();
 
-    // Nothing typed? Show today and get out
     if args.is_empty() {
-        show_today(&db)?;
+        tui::run(&db)?;
         return Ok(());
     }
 
-    // the first real word decides the command
     match args[0].as_str() {
         "log" => {
             show_today(&db)?;
         }
+
         "push" => {
             let today = Local::now().format("%Y-%m-%d").to_string();
             match db.seal_day(&today)? {
@@ -40,9 +37,10 @@ fn main() -> rusqlite::Result<()> {
                 }
             }
         }
+
         "status" => {
-            let today_key = Local::now().format("%Y-%m-%d").to_string(); // query string
-            let today_formatted = Local::now().format("%-d %B %Y").to_string(); // display string
+            let today_key = Local::now().format("%Y-%m-%d").to_string(); 
+            let today_formatted = Local::now().format("%-d %B %Y").to_string(); 
 
             match db.day_status(&today_key)? {
                 engine::db::DayStatus::Sealed(n) => {
@@ -62,9 +60,8 @@ fn main() -> rusqlite::Result<()> {
         "grid" => {
             show_grid(&db)?;
         }
-        // anything else is treated as a commit to log
+
         _ => {
-            // re-join all the words back into one line for the parser
             let line = args.join(" ");
             match Commit::parse(&line) {
                 Ok(commit) => {
@@ -96,20 +93,16 @@ fn show_today(db: &Database) -> rusqlite::Result<()> {
     Ok(())
 }
 
-// map a day's commit count to an emerald RGB
-// dark (quiet) -> bright (busy)
-// returns (r, g, b)
 fn shade_for(count: u32) -> (u8, u8, u8) {
     match count {
-        0 => (22, 33, 28),       // empty: faint, just above black
-        1..=2 => (15, 61, 42),   // dark emerald
-        3..=4 => (28, 125, 82),  // mid
-        5..=7 => (39, 163, 111), // bright
-        _ => (52, 209, 127),     // 8+: brightest
+        0 => (22, 33, 28),
+        1..=2 => (15, 61, 42),
+        3..=4 => (28, 125, 82),
+        5..=7 => (39, 163, 111),
+        _ => (52, 209, 127),
     }
 }
 
-// print tiles
 fn tile(count: u32) {
     let (r, g, b) = shade_for(count);
 
@@ -117,38 +110,30 @@ fn tile(count: u32) {
 }
 
 fn show_grid(db: &Database) -> rusqlite::Result<()> {
-    // 30 days ago, as the query's lower bound
     let today = Local::now().date_naive();
-    let start = today - Duration::days(29); // 29 + today = 30 days
+    let start = today - Duration::days(29);
     let start_key = start.format("%Y-%m-%d").to_string();
 
     let counts = db.daily_counts(&start_key)?;
 
     println!("\nlast 30 days\n");
 
-    // padding: figure out which weekday `start` is, and print blank cells
-    // so the first real tile lands in the correct column
-    // we'll treat monday as column 0
     let pad = start.weekday().num_days_from_monday();
     for _ in 0..pad {
-        print!("   "); // blank cell: 3 spaces (matches tile width + gap)
+        print!("   ");
     }
 
-    // walk all 30 days, drawing a tile for each
     let mut current = start;
     let mut column = pad;
     for _ in 0..30 {
         let key = current.format("%Y-%m-%d").to_string();
-        // map.get returns Option<&u32>; copied() turns it into Option<u32>;
-        // unwrap_or(0) means "0 if this day isn't in the map"
         let count = counts.get(&key).copied().unwrap_or(0);
 
         tile(count);
-        print!(" "); // gap between tiles
+        print!(" ");
 
         column += 1;
         if column == 7 {
-            // end of a week: newline, reset column
             println!();
             column = 0;
         }
