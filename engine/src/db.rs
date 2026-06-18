@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use crate::{Commit, Pillar, Trailer};
 use chrono::{DateTime, Utc};
+use directories::ProjectDirs;
 use rusqlite::Connection;
 use rusqlite::OptionalExtension;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 // wraps the live sqlite connection; all database access goes through this
@@ -28,6 +30,30 @@ pub enum DayStatus {
 }
 
 impl Database {
+    // work out the proper per-OS location for our database file,
+    // creating the app's data folder if it doesn't exist yet
+    // macOS: ~/Library/Application Support/lifelog/lifelog.db
+    fn default_path() -> PathBuf {
+        // ("", "", "lifelog") = qualifier, organisation, app name
+        // we only care about the app name for a personal tool
+        let proj =
+            ProjectDirs::from("", "", "lifelog").expect("could not determine a home directory");
+
+        let data_dir = proj.data_dir();
+
+        // make sure the folder exists (e.g. first ever run)
+        std::fs::create_dir_all(data_dir).expect("could not create the lifelog data folder");
+
+        // db file lives inside that folder
+        data_dir.join("lifelog.db")
+    }
+
+    // open the database at the proper OS location
+    pub fn open_default() -> rusqlite::Result<Database> {
+        let path = Self::default_path();
+        Self::open(path.to_str().expect("db path was not valid UTF-8"))
+    }
+
     // open or create the database file; ensure all tables exist
     // returns the ready-to-use Database, or a database error
     pub fn open(path: &str) -> rusqlite::Result<Database> {

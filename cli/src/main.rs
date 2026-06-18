@@ -6,7 +6,7 @@ use engine::{Commit, db::Database};
 fn main() -> rusqlite::Result<()> {
     // open the database (creates the file + tables on first run)
     // `mut` because save() needs a mutable borrow (it opens a transaction)
-    let mut db = Database::open("lifelog.db")?;
+    let mut db = Database::open_default()?;
 
     // collect what the user typed. The FIRST arg is always the program's own
     // name, so we skip it with skip(1) and keep the rest
